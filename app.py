@@ -5,16 +5,39 @@ import io
 import time
 import threading
 import os
+import json
 
 app = Flask(__name__)
 
-BASE_URL = "https://waba.360dialog.io/v1/messages"
+BASE_URL    = "https://waba.360dialog.io/v1/messages"
+CONFIG_FILE = "/tmp/api_config.json"
 
-# بيانات API - Ahmed بيحطها من واجهة التطبيق
-api_config = {
-    "api_key": "",
-    "phone_number_id": ""
-}
+def load_config():
+    """Railway Variables أولوية دايماً، لو مفيش يرجع للملف"""
+    # أولاً: Railway Variables
+    api_key        = os.environ.get("API_KEY", "")
+    phone_number_id = os.environ.get("PHONE_NUMBER_ID", "")
+
+    # لو مفيش Variables، ارجع للملف المؤقت
+    if not api_key and os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE) as f:
+                saved = json.load(f)
+                api_key        = saved.get("api_key", "")
+                phone_number_id = saved.get("phone_number_id", "")
+        except:
+            pass
+
+    return {"api_key": api_key, "phone_number_id": phone_number_id}
+
+def save_config(api_key, phone_number_id):
+    """حفظ في الملف المؤقت فقط لو مفيش Railway Variables"""
+    if not os.environ.get("API_KEY"):
+        try:
+            with open(CONFIG_FILE, 'w') as f:
+                json.dump({"api_key": api_key, "phone_number_id": phone_number_id}, f)
+        except:
+            pass
 
 progress_data = {
     "total": 0, "done": 0,
@@ -30,12 +53,13 @@ def index():
 def config():
     if request.method == 'POST':
         data = request.json
-        api_config["api_key"]        = data.get('api_key', '')
-        api_config["phone_number_id"] = data.get('phone_number_id', '')
+        save_config(data.get('api_key', ''), data.get('phone_number_id', ''))
         return jsonify({"status": "ok"})
+    cfg = load_config()
     return jsonify({
-        "api_key": api_config["api_key"][:6] + "***" if api_config["api_key"] else "",
-        "phone_number_id": api_config["phone_number_id"]
+        "api_key":        cfg["api_key"][:6] + "***" if cfg["api_key"] else "",
+        "phone_number_id": cfg["phone_number_id"],
+        "configured":     bool(cfg["api_key"])
     })
 
 @app.route('/send', methods=['POST'])
@@ -44,18 +68,19 @@ def send():
     if progress_data["running"]:
         return jsonify({"error": "إرسال جاري بالفعل"}), 400
 
-    data       = request.json
-    msg_text   = data.get("message_text", "")
-    image_url  = data.get("image_url", "")
-    link_url   = data.get("link_url", "")
-    link_text  = data.get("link_text", "")
-    numbers    = data.get("numbers", [])
+    cfg = load_config()
+    if not cfg["api_key"]:
+        return jsonify({"error": "من فضلك أدخل API Key أولاً"}), 400
+
+    data      = request.json
+    msg_text  = data.get("message_text", "")
+    image_url = data.get("image_url", "")
+    link_url  = data.get("link_url", "")
+    link_text = data.get("link_text", "")
+    numbers   = data.get("numbers", [])
 
     if not numbers or not msg_text:
         return jsonify({"error": "بيانات ناقصة"}), 400
-
-    if not api_config["api_key"]:
-        return jsonify({"error": "من فضلك أدخل API Key أولاً"}), 400
 
     progress_data = {
         "total": len(numbers), "done": 0,
@@ -65,7 +90,7 @@ def send():
 
     def run():
         headers = {
-            "D360-API-KEY": api_config["api_key"],
+            "D360-API-KEY": cfg["api_key"],
             "Content-Type": "application/json"
         }
         for phone in numbers:
