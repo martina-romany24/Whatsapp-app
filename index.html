@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>واتساب - إرسال جماعي</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Tajawal',sans-serif; background:#ECE5DD; min-height:100vh; }
+
+  .header { background:#075E54; color:white; padding:14px 20px; display:flex; align-items:center; gap:12px; box-shadow:0 2px 8px rgba(0,0,0,.2); }
+  .header h1 { font-size:18px; font-weight:700; }
+  .header p  { font-size:12px; color:#B2DFDB; }
+
+  .main { max-width:700px; margin:0 auto; padding:20px 16px; display:flex; flex-direction:column; gap:16px; }
+
+  .card { background:white; border-radius:12px; padding:20px; box-shadow:0 1px 4px rgba(0,0,0,.1); }
+  .card-title { font-size:14px; font-weight:700; color:#075E54; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+
+  input[type=text], input[type=password], textarea {
+    width:100%; border:1.5px solid #E0E0E0; border-radius:8px;
+    padding:10px 14px; font-family:'Tajawal',sans-serif; font-size:14px;
+    color:#333; outline:none; transition:border-color .2s; direction:rtl;
+  }
+  input:focus, textarea:focus { border-color:#25D366; }
+  label { font-size:13px; color:#555; margin-bottom:6px; display:block; }
+  .ig { margin-bottom:12px; }
+  .ig:last-child { margin-bottom:0; }
+  textarea { resize:vertical; min-height:100px; line-height:1.6; }
+
+  .toggle-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid #F0F0F0; cursor:pointer; }
+  .toggle-row:last-child { border-bottom:none; }
+  .toggle { width:44px; height:24px; background:#CCC; border-radius:12px; position:relative; transition:background .2s; cursor:pointer; border:none; outline:none; }
+  .toggle.on { background:#25D366; }
+  .toggle::after { content:''; width:20px; height:20px; background:white; border-radius:50%; position:absolute; top:2px; right:2px; transition:transform .2s; }
+  .toggle.on::after { transform:translateX(-20px); }
+  .opt { display:none; margin-top:12px; padding-top:12px; border-top:1px dashed #E0E0E0; }
+  .opt.show { display:block; }
+
+  .upload-area { border:2px dashed #25D366; border-radius:10px; padding:20px; text-align:center; cursor:pointer; background:#F0FFF4; }
+  .upload-area:hover { background:#E8FFE8; }
+  .upload-area p  { color:#075E54; font-size:14px; margin-top:6px; }
+  .upload-area input { display:none; }
+
+  .counter { display:none; align-items:center; gap:8px; background:#E8F5E9; border-radius:8px; padding:10px 14px; font-size:14px; color:#2E7D32; font-weight:600; margin-top:12px; }
+  .counter.show { display:flex; }
+
+  .send-btn { width:100%; background:#25D366; color:white; border:none; border-radius:12px; padding:16px; font-family:'Tajawal',sans-serif; font-size:17px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; transition:background .2s; box-shadow:0 4px 12px rgba(37,211,102,.3); }
+  .send-btn:hover { background:#1EB857; }
+  .send-btn:disabled { background:#A5D6A7; cursor:not-allowed; }
+
+  .progress-card { display:none; }
+  .progress-card.show { display:block; }
+  .bar-bg { background:#E0E0E0; border-radius:8px; height:10px; overflow:hidden; margin:12px 0; }
+  .bar    { height:100%; background:#25D366; border-radius:8px; width:0%; transition:width .3s; }
+  .ptext  { font-size:13px; color:#666; text-align:center; }
+  .stats  { display:flex; gap:12px; margin-top:12px; font-size:13px; font-weight:600; }
+  .sok    { color:#25D366; background:#E8F5E9; padding:6px 12px; border-radius:20px; }
+  .sfail  { color:#E53935; background:#FFEBEE; padding:6px 12px; border-radius:20px; }
+  .log-area { max-height:180px; overflow-y:auto; background:#F9F9F9; border-radius:8px; padding:10px; font-size:12px; color:#555; margin-top:12px; line-height:1.8; direction:ltr; text-align:left; }
+
+  .settings-link { text-align:center; font-size:13px; color:#888; cursor:pointer; text-decoration:underline; }
+  .settings-sec { display:none; }
+  .settings-sec.show { display:block; }
+  .tag { font-size:11px; background:#E8F5E9; color:#2E7D32; padding:2px 8px; border-radius:10px; }
+  .save-btn { margin-top:10px; background:#075E54; color:white; border:none; border-radius:8px; padding:8px 20px; font-family:'Tajawal',sans-serif; font-size:14px; cursor:pointer; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="font-size:28px">💬</div>
+  <div>
+    <h1>إرسال واتساب جماعي</h1>
+    <p>أرسل رسائلك لكل جهات اتصالك بسهولة</p>
+  </div>
+</div>
+
+<div class="main">
+
+  <p class="settings-link" onclick="document.getElementById('settSec').classList.toggle('show')">⚙️ إعدادات API (مرة واحدة فقط)</p>
+
+  <div class="settings-sec" id="settSec">
+    <div class="card">
+      <div class="card-title">🔑 بيانات الربط</div>
+      <div class="ig"><label>API Key</label><input type="password" id="apiKey" placeholder="أدخل API Key من 360dialog"></div>
+      <div class="ig"><label>Phone Number ID</label><input type="text" id="phoneId" placeholder="أدخل Phone Number ID"></div>
+      <button class="save-btn" onclick="saveConfig()">💾 حفظ البيانات</button>
+      <span id="saveMsg" style="font-size:13px;color:#25D366;margin-right:10px;display:none">✅ تم الحفظ!</span>
+    </div>
+  </div>
+
+  <!-- Message -->
+  <div class="card">
+    <div class="card-title">✍️ الرسالة</div>
+    <div class="ig">
+      <label>نص الرسالة <span class="tag">مطلوب</span></label>
+      <textarea id="msgText" placeholder="اكتب رسالتك هنا..."></textarea>
+    </div>
+    <div class="toggle-row" onclick="toggleField('imgField','imgTog')">
+      <span>🖼️ إضافة صورة</span>
+      <button class="toggle" id="imgTog"></button>
+    </div>
+    <div class="opt" id="imgField">
+      <label>رابط الصورة</label>
+      <input type="text" id="imageUrl" placeholder="https://example.com/image.jpg" dir="ltr">
+    </div>
+    <div class="toggle-row" onclick="toggleField('lnkField','lnkTog')">
+      <span>🔗 إضافة رابط</span>
+      <button class="toggle" id="lnkTog"></button>
+    </div>
+    <div class="opt" id="lnkField">
+      <div class="ig"><label>الرابط</label><input type="text" id="linkUrl" placeholder="https://example.com" dir="ltr"></div>
+      <div class="ig"><label>نص الرابط</label><input type="text" id="linkText" placeholder="اضغط هنا"></div>
+    </div>
+  </div>
+
+  <!-- Numbers -->
+  <div class="card">
+    <div class="card-title">📋 قائمة الأرقام</div>
+    <div class="upload-area" onclick="document.getElementById('csvFile').click()">
+      <div style="font-size:32px">📂</div>
+      <p>اضغط لرفع ملف Excel / CSV</p>
+      <p style="font-size:12px;color:#888;margin-top:4px">عمود الأرقام اسمه "phone"</p>
+      <input type="file" id="csvFile" accept=".csv" onchange="uploadCSV(event)">
+    </div>
+    <div style="text-align:center;margin:10px 0;color:#AAA;font-size:13px">— أو —</div>
+    <label>الصق الأرقام (رقم في كل سطر)</label>
+    <textarea id="numText" placeholder="966501234567&#10;966501234568" oninput="countNums()" style="min-height:80px;font-size:13px;direction:ltr;text-align:left"></textarea>
+    <div class="counter" id="counter"><span>👥</span><span id="cText">0 رقم</span></div>
+  </div>
+
+  <button class="send-btn" id="sendBtn" onclick="startSend()">📤 إرسال الرسائل</button>
+
+  <div class="card progress-card" id="progCard">
+    <div class="card-title">📊 تقدم الإرسال</div>
+    <div class="bar-bg"><div class="bar" id="bar"></div></div>
+    <div class="ptext" id="ptext">جاري الإرسال...</div>
+    <div class="stats">
+      <span class="sok"  id="sok">✅ نجح: 0</span>
+      <span class="sfail" id="sfail">❌ فشل: 0</span>
+    </div>
+    <div class="log-area" id="logArea"></div>
+  </div>
+
+</div>
+
+<script>
+  let numbers = [];
+  let pollInterval = null;
+
+  function toggleField(fId, tId) {
+    document.getElementById(fId).classList.toggle('show');
+    document.getElementById(tId).classList.toggle('on');
+  }
+
+  async function saveConfig() {
+    await fetch('/config', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ api_key: document.getElementById('apiKey').value.trim(), phone_number_id: document.getElementById('phoneId').value.trim() })
+    });
+    const m = document.getElementById('saveMsg');
+    m.style.display = 'inline'; setTimeout(()=>m.style.display='none', 2000);
+  }
+
+  async function uploadCSV(e) {
+    const fd = new FormData();
+    fd.append('file', e.target.files[0]);
+    const r = await fetch('/parse-csv', {method:'POST', body:fd});
+    const d = await r.json();
+    numbers = d.numbers;
+    document.getElementById('counter').classList.add('show');
+    document.getElementById('cText').innerText = `${numbers.length} رقم من الملف`;
+  }
+
+  function countNums() {
+    numbers = document.getElementById('numText').value.split('\n')
+      .map(l=>l.trim().replace(/\+/g,'').replace(/\s/g,''))
+      .filter(n=>n && /^\d{7,15}$/.test(n));
+    document.getElementById('counter').classList.add('show');
+    document.getElementById('cText').innerText = `${numbers.length} رقم`;
+  }
+
+  async function startSend() {
+    if (!document.getElementById('msgText').value.trim()) { alert('⚠️ اكتب نص الرسالة'); return; }
+    if (!numbers.length) { alert('⚠️ أضف أرقام أولاً'); return; }
+
+    document.getElementById('sendBtn').disabled = true;
+    document.getElementById('sendBtn').innerHTML = '⏳ جاري الإرسال...';
+    document.getElementById('progCard').classList.add('show');
+
+    await fetch('/send', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        message_text: document.getElementById('msgText').value.trim(),
+        image_url:    document.getElementById('imageUrl').value.trim(),
+        link_url:     document.getElementById('linkUrl').value.trim(),
+        link_text:    document.getElementById('linkText').value.trim(),
+        numbers
+      })
+    });
+
+    pollInterval = setInterval(pollProgress, 1500);
+  }
+
+  async function pollProgress() {
+    const r = await fetch('/progress');
+    const d = await r.json();
+    const pct = d.total ? Math.round((d.done/d.total)*100) : 0;
+    document.getElementById('bar').style.width   = pct+'%';
+    document.getElementById('ptext').innerText   = `${d.done} من ${d.total} رسالة (${pct}%)`;
+    document.getElementById('sok').innerText     = `✅ نجح: ${d.success}`;
+    document.getElementById('sfail').innerText   = `❌ فشل: ${d.fail}`;
+    const log = document.getElementById('logArea');
+    log.innerHTML = d.log.join('\n');
+    log.scrollTop = log.scrollHeight;
+    if (!d.running && d.done === d.total) {
+      clearInterval(pollInterval);
+      document.getElementById('sendBtn').innerHTML = `✅ اكتمل الإرسال (${d.success}/${d.total})`;
+    }
+  }
+</script>
+</body>
+</html>
